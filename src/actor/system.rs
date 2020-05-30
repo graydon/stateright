@@ -46,6 +46,7 @@ pub struct Envelope<Msg> { pub src: Id, pub dst: Id, pub msg: Msg }
 /// `SystemState<Actor>` instead for simpler type signatures.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct _SystemState<Msg, State> {
+    pub depth: usize,
     pub actor_states: Vec<Arc<State>>,
     pub network: Network<Msg>,
 }
@@ -95,7 +96,8 @@ where
             }
         }
 
-        vec![_SystemState { actor_states, network }]
+        let depth = 0;
+        vec![_SystemState { depth, actor_states, network }]
     }
 
     fn actions(&self, state: &Self::State, actions: &mut Vec<Self::Action>) {
@@ -125,6 +127,7 @@ where
                 let out = self.actors[index].next_out(id, last_actor_state, Event::Receive(src, msg.clone()));
                 if out.state.is_none() && out.commands.is_empty() { return None; } // optimization
                 let mut next_sys_state = last_sys_state.clone();
+                next_sys_state.depth += 1;
                 if let Some(next_actor_state) = out.state {
                     next_sys_state.actor_states[index] = Arc::new(next_actor_state);
                 }
@@ -197,6 +200,7 @@ mod test {
 
         let fingerprint = |states: Vec<PingPongCount>, envelopes: Vec<Envelope<_>>| {
             fingerprint(&_SystemState {
+                depth: 0,
                 actor_states: states.into_iter().map(|s| Arc::new(s)).collect::<Vec<_>>(),
                 network: Network::from_iter(envelopes),
             })
