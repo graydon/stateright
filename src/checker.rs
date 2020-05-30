@@ -318,6 +318,17 @@ where
             let mut update_props = false;
             Self::check_properties(&state_machine, &state, digest, &properties,
                                    &mut ebits, &discoveries, &mut update_props);
+
+            // Check to see if we're at a boundary state.
+            if let Some(boundary) = &model.boundary {
+                if !boundary(state_machine, &state) {
+                    // Boundary implies "terminal state".
+                    Self::note_terminal_state(digest, &properties, &ebits,
+                                              &discoveries, &mut update_props);
+                    continue
+                }
+            }
+
             // collect the next actions, and record the corresponding states that have not been
             // seen before if they are within the boundary
             state_machine.actions(&state, &mut next_actions);
@@ -326,17 +337,9 @@ where
                 Self::note_terminal_state(digest, &properties, &ebits,
                                           &discoveries, &mut update_props);
             }
+
             for next_action in next_actions.drain(0..) {
                 if let Some(next_state) = state_machine.next_state(&state, next_action) {
-                    if let Some(boundary) = &model.boundary {
-                        if !boundary(state_machine, &next_state) {
-                            // Boundary implies "terminal state".
-                            Self::note_terminal_state(digest, &properties, &ebits,
-                                                      &discoveries, &mut update_props);
-                            continue
-                        }
-                    }
-
                     // FIXME: we should really include ebits in the fingerprint here --
                     // it is possible to arrive at a DAG join with two different ebits
                     // values, and subsequently treat the fact that some eventually
