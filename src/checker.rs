@@ -491,7 +491,8 @@ where
 
             let block_elapsed = block_start.elapsed().as_secs();
             if block_elapsed > 0 {
-                println!("{} states pending after {} sec. Continuing.",
+                println!("Checking. generated={}, pending={}, sec={}",
+                         self.sources.len(),
                          self.pending.len(),
                          method_start.elapsed().as_secs());
             }
